@@ -1,25 +1,62 @@
 import { Button, Card, Layout, Text, useStyleSheet, Avatar, Icon } from '@ui-kitten/components';
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import { StyleSheet, View, Image, TouchableOpacity } from 'react-native';
-import { StackActions } from '@react-navigation/native';
+import { StackActions, useFocusEffect } from '@react-navigation/native';
+import { useDispatch, useSelector } from 'react-redux';
+import * as SecureStore from 'expo-secure-store';
+import axios from 'axios';
+import { update } from '../features/userSlice';
 
 export default function HomeScreen({ navigation }) {
   const styles = useStyleSheet(themedStyles);
 
-  const LogoutEvent = () => {
+  const LogoutEvent = async () => {
+    await SecureStore.deleteItemAsync('access_token')
     navigation.dispatch(StackActions.replace('Login'));
   }
+
+  const { fullname, bidang, tambah_poin } = useSelector(state => state.user);
+  const [loading, setLoading] = useState(false);
+  const dispatch = useDispatch();
+
+  useFocusEffect(
+    useCallback(() => {
+      async function getProfile() {
+        try {
+          setLoading(true);
+          const token = await SecureStore.getItemAsync('access_token');
+          const response = await axios({
+            'method': 'get',
+            'url': 'http://10.0.2.2:8000/api/pendamping',
+            'headers': {
+              'Authorization': `Bearer ${token}`
+            }
+          })
+          const user = response.data.data.pendamping[0]
+          dispatch(update({ fullname: user.fullname, noreg: user.noreg, bidang: user.bidang, tambah_poin: user.tambah_poin }));
+          setLoading(false);
+        } catch (error) {
+          console.log(error);
+        }
+      }
+      getProfile();
+    }, [])
+  );
 
   const Header = (props) => (
     <View {...props}
       style={styles.profile}
     >
-      <Avatar size='large' source={require('../assets/avatar.png')} />
       <View
-        style={{ marginLeft: -90 }}
+        style={{ flex: 1, flexDirection: 'row' }}
       >
-        <Text category='h6'>Di sini Nama</Text>
-        <Text category='s2'>Di sini Jabatan</Text>
+        <Avatar size='large' source={require('../assets/avatar.png')} />
+        <View
+          style={{ marginLeft: 5, marginTop: 3 }}
+        >
+          <Text category='h6'>{fullname}</Text>
+          <Text category='s2'>{bidang}</Text>
+        </View>
       </View>
       <Button
         size="small"
@@ -27,16 +64,11 @@ export default function HomeScreen({ navigation }) {
       >Logout</Button>
     </View>
   );
-  // useEffect(() => {
-  //   setTimeout(() => {
-  // navigation.dispatch(StackActions.replace('Home'));
-  //   }, 3000)
-  // }, [])
   return (
     <View style={styles.container}>
       <Layout style={styles.topContainer} level='4'>
         <Card style={styles.card} header={Header}>
-          <Text>Detil bla bla bla</Text>
+          <Text>Performa bulan ini : {tambah_poin} poin</Text>
         </Card>
       </Layout>
       <Layout style={styles.content}>
@@ -47,7 +79,7 @@ export default function HomeScreen({ navigation }) {
           >
             <Image
               style={{ width: 45, height: 45, justifyContent: 'center', alignSelf: 'center' }}
-              source={require('../assets/icon.png')}
+              source={require('../assets/kegiatan_icon.png')}
               resizeMode='center'
             />
             <Text
@@ -60,7 +92,7 @@ export default function HomeScreen({ navigation }) {
           >
             <Image
               style={{ width: 45, height: 45, justifyContent: 'center', alignSelf: 'center' }}
-              source={require('../assets/icon.png')}
+              source={require('../assets/absen_icon.png')}
               resizeMode='center'
             />
             <Text
@@ -72,7 +104,7 @@ export default function HomeScreen({ navigation }) {
           >
             <Image
               style={{ width: 45, height: 45, justifyContent: 'center', alignSelf: 'center' }}
-              source={require('../assets/icon.png')}
+              source={require('../assets/visum_icon.png')}
               resizeMode='center'
             />
             <Text
@@ -125,5 +157,8 @@ const themedStyles = StyleSheet.create({
     marginVertical: 10,
     backgroundColor: 'color-primary-500',
     borderRadius: 10,
+  }, iconKegiatan: {
+    width: 300,
+    height: 240
   }
 })
