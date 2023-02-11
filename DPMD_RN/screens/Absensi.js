@@ -1,21 +1,31 @@
 import { Text, StyleSheet, ScrollView, View } from "react-native";
 import {
-  Layout,
   Select,
   SelectItem,
   useStyleSheet,
   Input,
-  Icon,
-  Datepicker,
   Button
 } from '@ui-kitten/components';
-import { useState } from "react";
+import { useCallback, useState } from "react";
+import { getKegiatan } from "../features/kegiatanSlice";
+import { useDispatch, useSelector } from "react-redux";
+import { useFocusEffect } from "@react-navigation/native";
 
 export default function AbsensiScreen({ navigation }) {
   const [selectedIndex, setSelectedIndex] = useState('');
   const [value, setValue] = useState('');
-  const [date, setDate] = useState(new Date());
   const styles = useStyleSheet(themedStyles);
+  const dispatch = useDispatch();
+
+  const kegiatan = useSelector(state => state.kegiatan);
+  console.log(typeof kegiatan);
+  // const { jenis, id, detil_kegiatan, alamat_kegiatan } = useSelector(state => state.kegiatan);
+
+  useFocusEffect(
+    useCallback(() => {
+      dispatch(getKegiatan());
+    }, [dispatch])
+  );
 
   const useInputState = (initialValue = '') => {
     const [multi, setMulti] = useState(initialValue);
@@ -37,15 +47,14 @@ export default function AbsensiScreen({ navigation }) {
           selectedIndex={selectedIndex}
           onSelect={index => setSelectedIndex(index)}
         >
-          <SelectItem
-            title='Pilihan 1'
-          />
-          <SelectItem
-            title='Pilihan 2'
-          />
-          <SelectItem
-            title='Pilihan 3'
-          />
+          {/* {
+            kegiatan.map(kegiatan => {
+              return (
+                <SelectItem title={kegiatan.kegiatan} key={kegiatan.id} />
+              )
+            })
+          } */}
+          <SelectItem title='aa' />
         </Select>
         <Input
           multiline={true}

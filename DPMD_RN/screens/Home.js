@@ -5,7 +5,7 @@ import { StackActions, useFocusEffect } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
 import * as SecureStore from 'expo-secure-store';
 import axios from 'axios';
-import { update } from '../features/userSlice';
+import { inputOther } from '../features/userSlice';
 
 export default function HomeScreen({ navigation }) {
   const styles = useStyleSheet(themedStyles);
@@ -18,7 +18,6 @@ export default function HomeScreen({ navigation }) {
   const { fullname, bidang, tambah_poin } = useSelector(state => state.user);
   const [loading, setLoading] = useState(false);
   const dispatch = useDispatch();
-
   useFocusEffect(
     useCallback(() => {
       async function getProfile() {
@@ -33,7 +32,7 @@ export default function HomeScreen({ navigation }) {
             }
           })
           const user = response.data.data.pendamping[0]
-          dispatch(update({ fullname: user.fullname, noreg: user.noreg, bidang: user.bidang, tambah_poin: user.tambah_poin }));
+          dispatch(inputOther({ fullname: user.fullname, noreg: user.noreg, bidang: user.bidang, tambah_poin: user.tambah_poin }));
           setLoading(false);
         } catch (error) {
           console.log(error);

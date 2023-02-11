@@ -12,7 +12,7 @@ import queryString from 'querystring';
 import * as SecureStore from 'expo-secure-store';
 import { StackActions } from "@react-navigation/native";
 import { useDispatch } from "react-redux";
-import { update } from "../features/userSlice";
+import { inputIdUsername } from "../features/userSlice";
 
 
 export default function AbsensiScreen({ navigation }) {
@@ -45,7 +45,7 @@ export default function AbsensiScreen({ navigation }) {
       })
       const { access_token, user } = response.data.data;
       await SecureStore.setItemAsync('access_token', access_token);
-      dispatch(update({ id: user.id, username: user.username }));
+      dispatch(inputIdUsername({ id: user.id, username: user.username }));
       setLoading(false);
       navigation.dispatch(StackActions.replace('Home'));
     } catch (error) {

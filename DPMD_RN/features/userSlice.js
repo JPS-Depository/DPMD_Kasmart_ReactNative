@@ -15,16 +15,24 @@ export const userSlice = createSlice({
     tambah_poin: ''
   },
   reducers: {
-    update: (state, action) => {
-      state.id = action.payload.id
-      state.username = action.payload.username
-      state.fullname = action.payload.fullname
-      state.noreg = action.payload.noreg
-      state.bidang = action.payload.bidang
-      state.tambah_poin = action.payload.tambah_poin
+    inputIdUsername: (state, action) => {
+      return {
+        ...state,
+        id: action.payload.id,
+        username: action.payload.username
+      }
+    },
+    inputOther: (state, action) => {
+      return {
+        ...state,
+        fullname: action.payload.fullname,
+        noreg: action.payload.noreg,
+        bidang: action.payload.bidang,
+        tambah_poin: action.payload.tambah_poin
+      }
     }
   }
 });
 
-export const { update } = userSlice.actions
+export const { inputIdUsername, inputOther } = userSlice.actions
 export default userSlice.reducer

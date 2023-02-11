@@ -1,4 +1,4 @@
-import { Text, StyleSheet, ScrollView, View } from "react-native";
+import { Text, StyleSheet, ScrollView, View, ToastAndroid } from "react-native";
 import {
   Layout,
   Select,
@@ -14,8 +14,10 @@ import { useCallback, useEffect, useState } from "react";
 import axios from "axios";
 import { useDispatch, useSelector } from "react-redux";
 import { getKecamatan, kecamatanSelector } from "../features/kecamatanSlice";
-import { useFocusEffect } from "@react-navigation/native";
+import { StackActions, useFocusEffect } from "@react-navigation/native";
 import { getKelurahanDesa, kelurahanSelector } from "../features/kelurahanDesaSlice";
+import * as ImagePicker from 'expo-image-picker';
+import queryString from 'querystring';
 
 export default function KegiatanScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
@@ -30,8 +32,10 @@ export default function KegiatanScreen({ navigation }) {
   const [kabupaten, setKabupaten] = useState('');
   const [keldes, setKeldes] = useState('');
   const [status, setStatus] = useState('');
-  const [indikator, setIndikator] = useState('');
+  const [indikator, setIndikator] = useState('-');
   const [date, setDate] = useState(new Date());
+  const [image, setImage] = useState('');
+  const [imageName, setImageName] = useState('Silahkan Pilih Gambar');
 
   const jenisKegiatanData = ['Rutin', 'Harian', 'Wajib', 'Pilihan'];
   const kabupatenData = ['Bengkalis'];
@@ -56,31 +60,88 @@ export default function KegiatanScreen({ navigation }) {
 
   const multilineInputState = useInputState();
 
-  async function submitKegiatan() {
-    console.log(jenisKegiatan);
-    console.log(namaKegiatan);
-    console.log(lokasiKegiatan);
-    console.log(1);
-    console.log(kecamatan.id);
-    console.log(keldes.id);
-    console.log(date);
-    console.log(sasaranKegiatan);
-    console.log(multilineInputState.multi);
-    console.log(status);
-    console.log(indikator);
+  const showToast = (notice) => {
+    ToastAndroid.show(notice, ToastAndroid.CENTER, ToastAndroid.BOTTOM, ToastAndroid.SHORT);
   }
 
-  // const indikatorInputEnabler = () => {
-  //   if (jenisKegiatan == 'Wajib' || jenisKegiatan == 'Pilihan') {
-  //     return true;
-  //   } else {
-  //     return false;
-  //   }
-  // }
+  const pickImage = async () => {
+    try {
+      let result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 1,
+        base64: true
+      });
+      setImage(result.assets[0].base64);
+      setImageName('1 Gambar telah dipilih');
+    } catch (error) {
+      setImage('');
+      setImageName('Silahkan Pilih Gambar');
+    }
+  }
+
+  const getCamera = async () => {
+    try {
+      let result = await ImagePicker.launchCameraAsync({
+        base64: true
+      });
+      setImage(result.assets[0].base64);
+      setImageName('1 Gambar telah dipilih');
+    } catch (error) {
+      setImage('');
+      setImageName('Silahkan Pilih Gambar');
+    }
+  }
+
+  const { username } = useSelector(state => state.user);
+
+  async function submitKegiatan() {
+    try {
+      const tanggal = new Date(date);
+      const formattedDate = date.toLocaleDateString('si-LK', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      });
+      const response = await axios({
+        'method': 'post',
+        'url': 'http://10.0.2.2:8000/api/inputkegiatan',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'application/json'
+        },
+        'data': queryString.stringify(
+          {
+            'jenis': jenisKegiatan,
+            'kegiatan': namaKegiatan,
+            'alamat_kegiatan': lokasiKegiatan,
+            'kelurahan_id': 1,
+            'kecamatan_id': kecamatan.id,
+            'kabupaten_id': keldes.id,
+            'tanggal_kegiatan': formattedDate,
+            'sasaran': sasaranKegiatan,
+            'detil_kegiatan': multilineInputState.multi,
+            'status': status,
+            'indikator': indikator,
+            'image': image,
+            'created_by': username
+          })
+      })
+      if (response.data.meta.status == "success") {
+        navigation.dispatch(StackActions.replace('Home'));
+      } else {
+        showToast('Silahkan isi seluruh form yang tersedia');
+      }
+    } catch (error) {
+      console.log(error);
+      showToast('Gagal input, silahkan coba lagi atau hubungi admin');
+      setLoading(false);
+    }
+  }
+
   useFocusEffect(
     useCallback(() => {
-      dispatch(getKecamatan());
       dispatch(getKelurahanDesa());
+      dispatch(getKecamatan());
     }, [dispatch])
   );
 
@@ -200,10 +261,10 @@ export default function KegiatanScreen({ navigation }) {
         <Select
           label={() => <Text style={styles.label}>Indikator Kegiatan</Text>}
           style={styles.formInput}
-          value={indikator}
+          value={jenisKegiatan == 'Wajib' || jenisKegiatan == 'Pilihan' ? indikator : '-'}
           disabled={jenisKegiatan == 'Wajib' || jenisKegiatan == 'Pilihan' ? false : true}
           placeholder='Pilih Indikator Kegiatan'
-          caption='Hanya untuk Jenis Kegiatan Wajib / Pilihan'
+          caption={() => <Text style={styles.caption}>Hanya untuk Jenis Kegiatan Wajib / Pilihan</Text>}
           onSelect={index => setIndikator(indikatorData[index.row])}
         >
           {
@@ -214,6 +275,28 @@ export default function KegiatanScreen({ navigation }) {
             })
           }
         </Select>
+        <View
+          style={{ flex: 1, flexDirection: 'row', alignItems: 'center', marginTop: 20 }}
+        >
+          <View>
+            <Button
+              style={styles.imagePicker}
+              onPress={pickImage}
+              size='small'
+            >Pilih Gambar</Button>
+            <Text
+              style={{ textAlign: 'center', marginVertical: 5 }}
+            >atau</Text>
+            <Button
+              style={styles.imagePicker}
+              onPress={getCamera}
+              size='small'
+            >Ambil Foto</Button>
+          </View>
+          <Text
+            style={{ marginLeft: 20 }}
+          >{imageName}</Text>
+        </View>
         <Button
           style={styles.submit}
           onPress={submitKegiatan}
@@ -241,7 +324,9 @@ const themedStyles = StyleSheet.create({
     color: 'color-primary-900',
     fontSize: 12
   }, submit: {
-    marginVertical: 20,
-    marginBottom: 40
+    marginBottom: 40,
+    marginTop: 20
+  }, imagePicker: {
+    width: 130
   }
 });
