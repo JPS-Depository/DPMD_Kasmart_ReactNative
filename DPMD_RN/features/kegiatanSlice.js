@@ -1,10 +1,18 @@
 import { createSlice, createAsyncThunk, createEntityAdapter } from "@reduxjs/toolkit";
 import axios from 'axios';
+import * as SecureStore from 'expo-secure-store';
 
-export const getKegiatan = createAsyncThunk("kegiatan/getKegiatan", async () => {
+export const getKegiatan = createAsyncThunk("kegiatan/getKegiatan", async (kecamatantugas_id) => {
+  const token = await SecureStore.getItemAsync('access_token');
   const response = await axios({
     method: 'get',
-    url: 'http://10.0.2.2:8000/api/kegiatan'
+    url: 'https://dpmd-bengkalis.com/api/kegiatan',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    params: { kecamatantugas_id: kecamatantugas_id }
   })
   return response.data;
 })
@@ -18,8 +26,7 @@ export const kegiatanSlice = createSlice({
   initialState: kegiatanEntity.getInitialState(),
   extraReducers: {
     [getKegiatan.fulfilled]: (state, action) => {
-      console.log(action.payload, "<<<<<");
-      kegiatanEntity.setAll(state, action.payload);
+      kegiatanEntity.setAll(state, action.payload.kegiatan);
     }
   }
 });

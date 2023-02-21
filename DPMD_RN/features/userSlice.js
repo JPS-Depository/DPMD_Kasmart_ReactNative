@@ -12,7 +12,10 @@ export const userSlice = createSlice({
     fullname: '',
     noreg: '',
     bidang: '',
-    tambah_poin: ''
+    tambah_poin: '',
+    kecamatantugas_id: '',
+    daily_point: 0,
+    activities_point: 0,
   },
   reducers: {
     inputIdUsername: (state, action) => {
@@ -28,7 +31,10 @@ export const userSlice = createSlice({
         fullname: action.payload.fullname,
         noreg: action.payload.noreg,
         bidang: action.payload.bidang,
-        tambah_poin: action.payload.tambah_poin
+        tambah_poin: action.payload.tambah_poin,
+        kecamatantugas_id: action.payload.kecamatantugas_id,
+        daily_point: action.payload.daily_point,
+        activities_point: action.payload.activities_point
       }
     }
   }

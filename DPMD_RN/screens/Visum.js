@@ -1,25 +1,131 @@
-import { Text, StyleSheet, ScrollView, View } from "react-native";
+import { StyleSheet, ScrollView, View, ToastAndroid } from "react-native";
 import {
-  Layout,
   Select,
   SelectItem,
   useStyleSheet,
   Input,
-  Icon,
-  Datepicker,
-  Button
+  Button, Text, Spinner
 } from '@ui-kitten/components';
-import { useState } from "react";
+import { useCallback, useState } from "react";
+import { getKegiatan, kegiatanSelector } from "../features/kegiatanSlice";
+import { useDispatch, useSelector } from "react-redux";
+import { StackActions, useFocusEffect } from "@react-navigation/native";
+import * as Location from 'expo-location';
+import * as ImagePicker from 'expo-image-picker';
+import queryString from 'querystring';
+import axios from "axios";
+import moment from "moment/moment";
 
 export default function AbsensiScreen({ navigation }) {
-  const [selectedIndex, setSelectedIndex] = useState('');
-  const [value, setValue] = useState('');
-  const [date, setDate] = useState(new Date());
+  const [loading, setLoading] = useState(false);
+  const [kegiatan, setKegiatan] = useState('');
+  const [location, setLocation] = useState({});
   const styles = useStyleSheet(themedStyles);
+  const [image, setImage] = useState('');
+  const [imageName, setImageName] = useState('Silahkan ambil Foto');
+  const dispatch = useDispatch();
+
+  const kegiatanData = useSelector(kegiatanSelector.selectAll);
+  const { username, kecamatantugas_id } = useSelector(state => state.user);
+
+  const showToast = (text) => {
+    ToastAndroid.show(text, ToastAndroid.CENTER, ToastAndroid.BOTTOM, ToastAndroid.SHORT);
+  }
+
+  useFocusEffect(
+    useCallback(() => {
+      dispatch(getKegiatan(kecamatantugas_id));
+      getCurrentLocation();
+    }, [dispatch])
+  );
+
+  async function getCurrentLocation() {
+    try {
+      const { status } = await Location.requestBackgroundPermissionsAsync();
+      if (status == 'granted') {
+        let currentLocation = await Location.getCurrentPositionAsync();
+        setLocation({
+          latitude: currentLocation.coords.latitude,
+          longitude: currentLocation.coords.longitude
+        });
+      }
+    } catch (error) {
+      showToast('Gagal Mendapatkan Lokasi');
+    }
+  }
+
+  const getCamera = async () => {
+    setLoading(true);
+    try {
+      let result = await ImagePicker.launchCameraAsync({
+        base64: true
+      });
+      setImage(result.assets[0].base64);
+      setImageName('Foto telah diambil');
+    } catch (error) {
+      setImage('');
+      setImageName('Silahkan ambil foto');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function getCurrentLocation() {
+    try {
+      const { status } = await Location.requestBackgroundPermissionsAsync();
+      if (status == 'granted') {
+        let currentLocation = await Location.getCurrentPositionAsync();
+        setLocation({
+          latitude: currentLocation.coords.latitude,
+          longitude: currentLocation.coords.longitude
+        });
+      }
+    } catch (error) {
+      showToast('Gagal Mendapatkan Lokasi');
+    }
+  }
+
+  const inputAbsensi = async () => {
+    try {
+      getCurrentLocation();
+      const tanggal = new Date();
+      const formattedDate = moment(tanggal).format('YYYY-MM-DD');
+      const response = await axios({
+        method: 'post',
+        url: 'https://dpmd-bengkalis.com/api/inputvisum',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'application/json'
+        },
+        data: queryString.stringify(
+          {
+            'tanggal': formattedDate,
+            'kegiatan_id': kegiatan.id,
+            'hasil_kegiatan': multilineInputState.multi,
+            'image': image,
+            'created_by': username,
+            'latitude': location.latitude,
+            'longitude': location.longitude
+          }
+        )
+      })
+      if (response.data.meta.status == "success") {
+        navigation.dispatch(StackActions.replace('Home'));
+      } else {
+        console.log(response.data);
+        showToast('Silahkan isi seluruh form yang diperlukan');
+      }
+    } catch (error) {
+      console.log(error);
+      showToast('Gagal Menginputkan Data');
+    } finally {
+      setLoading(false);
+    }
+  }
 
   const useInputState = (initialValue = '') => {
     const [multi, setMulti] = useState(initialValue);
-    return { multi, onchangeText: setMulti };
+    return { multi: multi, onchangeText: setMulti };
   }
 
   const multilineInputState = useInputState();
@@ -34,29 +140,62 @@ export default function AbsensiScreen({ navigation }) {
         <Select
           label={() => <Text style={styles.label}>Kegiatan</Text>}
           caption={() => <Text style={styles.caption}>Silahkan pilih kegiatan</Text>}
-          selectedIndex={selectedIndex}
-          onSelect={index => setSelectedIndex(index)}
+          placeholder="Kegiatan"
+          value={kegiatan.kegiatan}
+          onSelect={index => setKegiatan(kegiatanData[index.row])}
         >
-          <SelectItem
-            title='Pilihan 1'
-          />
-          <SelectItem
-            title='Pilihan 2'
-          />
-          <SelectItem
-            title='Pilihan 3'
-          />
+          {
+            kegiatanData.map(kegiatan => {
+              return (
+                <SelectItem title={kegiatan.kegiatan} key={kegiatan.id} />
+              )
+            })
+          }
         </Select>
+        <View style={{ flex: 1, flexDirection: 'column', marginTop: 20 }}>
+          <Text
+            style={styles.headerDetail}
+          >Keterangan Kegiatan</Text>
+          <View style={{ flexDirection: 'row' }}>
+            <Text style={styles.infoKegiatan}>Lokasi Kegiatan : </Text>
+            <Text style={styles.infoKegiatan}>{kegiatan ? kegiatan.alamat_kegiatan : 'Pilih kegiatan'}</Text>
+          </View>
+          <View style={{ flexDirection: 'row', marginBottom: 5 }}>
+            <Text style={styles.infoKegiatan}>Tanggal Kegiatan : </Text>
+            <Text style={styles.infoKegiatan}>{kegiatan ? moment(kegiatan.tanggal_kegiatan).format('DD-MM-YYYY') : 'Pilih kegiatan'}</Text>
+          </View>
+          <Text style={styles.infoKegiatan}>Detil Kegiatan : </Text>
+          <Text style={styles.infoKegiatan}>{kegiatan ? kegiatan.detil_kegiatan : 'Pilih kegiatan'}</Text>
+        </View>
         <Input
           multiline={true}
-          label={() => <Text style={styles.label}>Keterangan Visum</Text>}
-          placeholder='Deskripsikan detil visum kegiatan'
+          label={() => <Text style={styles.label}>Detil Visum</Text>}
+          placeholder='Masukkan keterangan yang ingin anda sampaikan'
           style={styles.formInput}
           textStyle={{ minHeight: 64 }}
           {...multilineInputState}
+          onChangeText={text => {
+            multilineInputState.onchangeText(text);
+          }}
         />
+        {
+          loading ?
+            <View
+              style={{ flex: 1, alignItems: 'center', marginVertical: 10 }}
+            >
+              <Spinner />
+            </View> :
+            <Text
+              style={styles.takePicture}
+            >{imageName}</Text>
+        }
+        <Button
+          onPress={getCamera}
+        > Ambil Foto
+        </Button>
         <Button
           style={styles.submit}
+          onPress={inputAbsensi}
         >Submit Visum</Button>
       </ScrollView >
     </View >
@@ -83,5 +222,24 @@ const themedStyles = StyleSheet.create({
   }, submit: {
     marginVertical: 20,
     marginBottom: 40
+  }, radio: {
+    margin: 2,
+    color: 'color-primary-900',
+  }, radioGroup: {
+    marginTop: 20,
+    flex: 1,
+    flexDirection: 'row'
+  }, infoKegiatan: {
+    fontSize: 13,
+    color: 'color-primary-800'
+  }, headerDetail: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: 'color-primary-900'
+  }, takePicture: {
+    marginTop: 20,
+    fontSize: 15,
+    textAlign: 'center',
+    color: 'color-primary-800'
   }
 });

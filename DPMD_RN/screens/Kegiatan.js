@@ -1,16 +1,14 @@
 import { Text, StyleSheet, ScrollView, View, ToastAndroid } from "react-native";
 import {
-  Layout,
   Select,
   SelectItem,
   useStyleSheet,
   Input,
-  Icon,
   Datepicker,
   Button,
-  IndexPath
+  Spinner
 } from '@ui-kitten/components';
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import axios from "axios";
 import { useDispatch, useSelector } from "react-redux";
 import { getKecamatan, kecamatanSelector } from "../features/kecamatanSlice";
@@ -18,6 +16,7 @@ import { StackActions, useFocusEffect } from "@react-navigation/native";
 import { getKelurahanDesa, kelurahanSelector } from "../features/kelurahanDesaSlice";
 import * as ImagePicker from 'expo-image-picker';
 import queryString from 'querystring';
+import moment from "moment";
 
 export default function KegiatanScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
@@ -36,7 +35,6 @@ export default function KegiatanScreen({ navigation }) {
   const [date, setDate] = useState(new Date());
   const [image, setImage] = useState('');
   const [imageName, setImageName] = useState('Silahkan Pilih Gambar');
-
   const jenisKegiatanData = ['Rutin', 'Harian', 'Wajib', 'Pilihan'];
   const kabupatenData = ['Bengkalis'];
   const statusData = ['Dalam Proses', 'Terealisasi', 'Belum Terealisasi'];
@@ -80,6 +78,7 @@ export default function KegiatanScreen({ navigation }) {
   }
 
   const getCamera = async () => {
+    setLoading(true);
     try {
       let result = await ImagePicker.launchCameraAsync({
         base64: true
@@ -89,6 +88,8 @@ export default function KegiatanScreen({ navigation }) {
     } catch (error) {
       setImage('');
       setImageName('Silahkan Pilih Gambar');
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -97,26 +98,22 @@ export default function KegiatanScreen({ navigation }) {
   async function submitKegiatan() {
     try {
       const tanggal = new Date(date);
-      const formattedDate = date.toLocaleDateString('si-LK', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
-      });
+      const formattedDate = moment(tanggal).format('YYYY-MM-DD');
       const response = await axios({
-        'method': 'post',
-        'url': 'http://10.0.2.2:8000/api/inputkegiatan',
+        method: 'post',
+        url: 'https://dpmd-bengkalis.com/api/inputkegiatan',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
           'Accept': 'application/json'
         },
-        'data': queryString.stringify(
+        data: queryString.stringify(
           {
             'jenis': jenisKegiatan,
             'kegiatan': namaKegiatan,
             'alamat_kegiatan': lokasiKegiatan,
-            'kelurahan_id': 1,
+            'kelurahan_id': keldes.id,
             'kecamatan_id': kecamatan.id,
-            'kabupaten_id': keldes.id,
+            'kabupaten_id': 1,
             'tanggal_kegiatan': formattedDate,
             'sasaran': sasaranKegiatan,
             'detil_kegiatan': multilineInputState.multi,
@@ -140,10 +137,16 @@ export default function KegiatanScreen({ navigation }) {
 
   useFocusEffect(
     useCallback(() => {
-      dispatch(getKelurahanDesa());
-      dispatch(getKecamatan());
-    }, [dispatch])
+      setLoading(true);
+      dispatch(getKelurahanDesa())
+        .then(result => {
+          dispatch(getKecamatan()).then(result => {
+            setLoading(false);
+          });
+        });
+    }, [])
   );
+
 
   return (
     <View
@@ -293,9 +296,17 @@ export default function KegiatanScreen({ navigation }) {
               size='small'
             >Ambil Foto</Button>
           </View>
-          <Text
-            style={{ marginLeft: 20 }}
-          >{imageName}</Text>
+          {
+            loading ?
+              <View
+                style={{ flex: 1, alignItems: 'center' }}
+              >
+                <Spinner />
+              </View> :
+              <Text
+                style={{ marginLeft: 20 }}
+              >{imageName}</Text>
+          }
         </View>
         <Button
           style={styles.submit}

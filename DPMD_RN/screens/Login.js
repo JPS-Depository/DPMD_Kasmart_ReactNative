@@ -1,4 +1,4 @@
-import { Text, StyleSheet, TouchableWithoutFeedback, Image, ScrollView, ToastAndroid } from "react-native";
+import { Text, StyleSheet, TouchableWithoutFeedback, Image, ScrollView, ToastAndroid, View } from "react-native";
 import {
   useStyleSheet,
   Input,
@@ -36,7 +36,7 @@ export default function AbsensiScreen({ navigation }) {
       setLoading(true);
       const response = await axios({
         method: 'post',
-        url: 'http://10.0.2.2:8000/api/login',
+        url: 'https://dpmd-bengkalis.com/api/login',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
           'Accept': 'application/json'
@@ -73,7 +73,7 @@ export default function AbsensiScreen({ navigation }) {
       <Input
         value={username}
         label={() => <Text style={styles.label}>Username</Text>}
-        caption={() => <Text style={styles.caption}>'Contoh : user00000 (user + 6-digit nomor registrasi)</Text>}
+        caption={() => <Text style={styles.caption}>*Contoh : user00000 (user + 5-digit nomor registrasi)</Text>}
         placeholder='Username'
         onChangeText={nextValue => setUsername(nextValue)}
         style={styles.formInput}
@@ -87,18 +87,16 @@ export default function AbsensiScreen({ navigation }) {
         accessoryRight={renderIcon}
         style={styles.formInput}
       />
+      <Button
+        style={styles.submit}
+        onPress={loginHandler}
+        disabled={loading ? true : false}
+      >Login</Button>
       {
         loading ?
-          <Button
-            style={styles.submit}
-            disabled='true'
-          >
+          <View style={{ alignItems: 'center' }}>
             <Spinner />
-          </Button> :
-          <Button
-            style={styles.submit}
-            onPress={loginHandler}
-          >Login</Button>
+          </View> : null
       }
     </ScrollView >
   )
@@ -109,7 +107,8 @@ const themedStyles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'color-primary-200',
     height: '100%',
-    padding: 15,
+    padding: 20,
+    paddingTop: 50,
     flexGrow: 1
   }, formInput: {
     marginTop: 20,
@@ -122,8 +121,7 @@ const themedStyles = StyleSheet.create({
     color: 'color-primary-900',
     fontSize: 12
   }, submit: {
-    marginVertical: 20,
-    marginBottom: 40
+    marginVertical: 20
   }, eye: {
     width: 30,
     height: 24
