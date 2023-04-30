@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "DPMD_RN",
+    "name": "Kasmart",
     "slug": "DPMD_RN",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -21,6 +21,8 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.dpmdbengkalis.kasmart",
+      "versionCode": 2,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
@@ -28,6 +30,12 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "a1dc389b-63e3-4ce4-9e36-c3332ed0a75a"
+      }
+    },
+    "owner": "superdeal4m"
   }
 }

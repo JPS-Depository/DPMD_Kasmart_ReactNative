@@ -12,6 +12,12 @@ import LoginScreen from './screens/Login';
 import KegiatanScreen from './screens/Kegiatan';
 import VisumScreen from './screens/Visum';
 import AbsensiScreen from './screens/Absensi';
+import DetilKegiatan from './screens/DetilKegiatan';
+import DaftarKegiatan from './screens/DaftarKegiatan';
+import DaftarAbsensi from './screens/DaftarAbsensi';
+import DaftarAnggota from './screens/DaftarAnggota';
+import DaftarVisum from './screens/DaftarVisum';
+import DetilVisum from './screens/DetilVisum';
 import { Provider } from 'react-redux';
 import { store } from './store/store';
 
@@ -33,13 +39,31 @@ export default function App() {
                 <Stack.Screen name="Home" component={HomeScreen} />
                 <Stack.Screen name="Login" component={LoginScreen} />
                 <Stack.Screen name="Kegiatan" component={KegiatanScreen} options={{
-                  headerShown: true
+                  headerShown: true, headerStyle: { backgroundColor: '#ECB56F' }
                 }} />
                 <Stack.Screen name="Visum" component={VisumScreen} options={{
-                  headerShown: true
+                  headerShown: true, headerStyle: { backgroundColor: '#ECB56F' }
                 }} />
                 <Stack.Screen name="Absensi" component={AbsensiScreen} options={{
-                  headerShown: true
+                  headerShown: true, headerStyle: { backgroundColor: '#ECB56F' }
+                }} />
+                <Stack.Screen name="Daftar Kegiatan" component={DaftarKegiatan} options={{
+                  headerShown: true, headerStyle: { backgroundColor: '#ECB56F' }
+                }} />
+                <Stack.Screen name="Detil Kegiatan" component={DetilKegiatan} options={{
+                  headerShown: true, headerStyle: { backgroundColor: '#ECB56F' }
+                }} />
+                <Stack.Screen name="Daftar Absensi" component={DaftarAbsensi} options={{
+                  headerShown: true, headerStyle: { backgroundColor: '#ECB56F' }
+                }} />
+                <Stack.Screen name="Daftar Anggota" component={DaftarAnggota} options={{
+                  headerShown: true, headerStyle: { backgroundColor: '#ECB56F' }
+                }} />
+                <Stack.Screen name="Daftar Visum" component={DaftarVisum} options={{
+                  headerShown: true, headerStyle: { backgroundColor: '#ECB56F' }
+                }} />
+                <Stack.Screen name="Detil Visum" component={DetilVisum} options={{
+                  headerShown: true, headerStyle: { backgroundColor: '#ECB56F' }
                 }} />
               </Stack.Navigator>
             </ApplicationProvider>

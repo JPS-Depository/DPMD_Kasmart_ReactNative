@@ -9,9 +9,11 @@ export const userSlice = createSlice({
   initialState: {
     id: '',
     username: '',
+    role: '',
     fullname: '',
     noreg: '',
     bidang: '',
+    jabatan: '',
     tambah_poin: '',
     kecamatantugas_id: '',
     daily_point: 0,
@@ -22,6 +24,7 @@ export const userSlice = createSlice({
       return {
         ...state,
         id: action.payload.id,
+        role: action.payload.role,
         username: action.payload.username
       }
     },
@@ -33,6 +36,7 @@ export const userSlice = createSlice({
         bidang: action.payload.bidang,
         tambah_poin: action.payload.tambah_poin,
         kecamatantugas_id: action.payload.kecamatantugas_id,
+        jabatan: action.payload.jabatan,
         daily_point: action.payload.daily_point,
         activities_point: action.payload.activities_point
       }

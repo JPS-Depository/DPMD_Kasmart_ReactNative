@@ -15,6 +15,7 @@ import { getKecamatan, kecamatanSelector } from "../features/kecamatanSlice";
 import { StackActions, useFocusEffect } from "@react-navigation/native";
 import { getKelurahanDesa, kelurahanSelector } from "../features/kelurahanDesaSlice";
 import * as ImagePicker from 'expo-image-picker';
+import * as Camera from 'expo-camera';
 import queryString from 'querystring';
 import moment from "moment";
 
@@ -78,16 +79,23 @@ export default function KegiatanScreen({ navigation }) {
   }
 
   const getCamera = async () => {
-    setLoading(true);
     try {
-      let result = await ImagePicker.launchCameraAsync({
-        base64: true
-      });
-      setImage(result.assets[0].base64);
-      setImageName('1 Gambar telah dipilih');
+      setLoading(true);
+      let { status: audioStatus } = await Camera.requestMicrophonePermissionsAsync();
+      let { status: cameraStatus } = await Camera.requestCameraPermissionsAsync();
+      if (audioStatus == 'granted' && cameraStatus == 'granted') {
+        let result = await ImagePicker.launchCameraAsync({
+          base64: true
+        });
+        setImage(result.assets[0].base64);
+        setImageName('Foto telah diambil');
+      } else {
+        console.log('masuk');
+        showToast('Izinkan aplikasi menggunakan kamera');
+      }
     } catch (error) {
       setImage('');
-      setImageName('Silahkan Pilih Gambar');
+      setImageName('Silahkan ambil foto');
     } finally {
       setLoading(false);
     }
@@ -126,6 +134,7 @@ export default function KegiatanScreen({ navigation }) {
       if (response.data.meta.status == "success") {
         navigation.dispatch(StackActions.replace('Home'));
       } else {
+        console.log(response.data);
         showToast('Silahkan isi seluruh form yang tersedia');
       }
     } catch (error) {
@@ -311,6 +320,7 @@ export default function KegiatanScreen({ navigation }) {
         <Button
           style={styles.submit}
           onPress={submitKegiatan}
+          disabled={loading ? true : false}
         >Submit</Button>
       </ScrollView >
     </View >

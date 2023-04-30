@@ -7,6 +7,7 @@ import * as SecureStore from 'expo-secure-store';
 import axios from 'axios';
 import { inputOther } from '../features/userSlice';
 import * as ImagePicker from 'expo-image-picker';
+import * as Camera from 'expo-camera';
 import queryString from 'querystring';
 import moment from "moment";
 
@@ -18,7 +19,7 @@ export default function HomeScreen({ navigation }) {
     navigation.dispatch(StackActions.replace('Login'));
   }
 
-  const { username, fullname, bidang, tambah_poin, kecamatantugas_id, noreg, daily_point, activities_point } = useSelector(state => state.user);
+  const { username, role, fullname, bidang, tambah_poin, kecamatantugas_id, noreg, daily_point, activities_point, jabatan } = useSelector(state => state.user);
   const [loading, setLoading] = useState(true);
   const [image, setImage] = useState('');
   const [visible, setVisible] = useState(false);
@@ -43,6 +44,7 @@ export default function HomeScreen({ navigation }) {
             noreg: user.noreg,
             bidang: user.bidang,
             tambah_poin: user.tambah_poin,
+            jabatan: user.jabatan,
             kecamatantugas_id: user.kecamatantugas_id,
             daily_point: user.daily_point,
             activities_point: user.activities_point
@@ -62,12 +64,18 @@ export default function HomeScreen({ navigation }) {
   }
 
   const getCamera = async () => {
-    setLoading(true);
     try {
-      let result = await ImagePicker.launchCameraAsync({
-        base64: true
-      });
-      setImage(result.assets[0].base64);
+      setLoading(true);
+      let { status: audioStatus } = await Camera.requestMicrophonePermissionsAsync();
+      let { status: cameraStatus } = await Camera.requestCameraPermissionsAsync();
+      if (audioStatus == 'granted' && cameraStatus == 'granted') {
+        let result = await ImagePicker.launchCameraAsync({
+          base64: true
+        });
+        setImage(result.assets[0].base64);
+      } else {
+        showToast('Izinkan aplikasi menggunakan kamera');
+      }
     } catch (error) {
       setImage('');
     } finally {
@@ -75,43 +83,45 @@ export default function HomeScreen({ navigation }) {
     }
   }
 
-  const absensi = async () => {
-    try {
-      await getCamera();
-      setLoading(true);
-      const token = await SecureStore.getItemAsync('access_token');
-      const tanggal = new Date();
-      const formattedDate = moment(tanggal).format('YYYY-MM-DD');
-      const response = await axios({
-        method: 'post',
-        url: 'https://dpmd-bengkalis.com/api/harian',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Accept': 'application/json'
-        },
-        data: queryString.stringify(
-          {
-            'tanggal_absensi': formattedDate,
-            'username': username,
-            'fullname': fullname,
-            'kecamatan_id': kecamatantugas_id,
-            'image': image,
-            'noreg': noreg
-          }
-        )
+  const absensi = () => {
+    getCamera()
+      .then(result => {
+        setLoading(true)
+        return SecureStore.getItemAsync('access_token')
+      }).then(token => {
+        const tanggal = new Date();
+        const formattedDate = moment(tanggal).format('YYYY-MM-DD');
+        return axios({
+          method: 'post',
+          url: 'https://dpmd-bengkalis.com/api/harian',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Accept': 'application/json'
+          },
+          data: queryString.stringify(
+            {
+              'tanggal_absensi': formattedDate,
+              'username': username,
+              'fullname': fullname,
+              'kecamatan_id': kecamatantugas_id,
+              'image': image,
+              'noreg': noreg
+            }
+          )
+        })
+      }).then(response => {
+        console.log(response.data);
+        if (response.data.meta.message == 'Anda telah absen hari ini') {
+          showToast('Anda telah absen hari ini');
+        } else if (response.data.data.absen) {
+          setVisible(true);
+        }
+      }).catch(error => {
+        showToast('Gagal Absen silahkan coba lagi / hubungi teknisi')
+      }).finally(() => {
+        setLoading(false);
       })
-      if (response.data.meta.message == 'Anda telah absen hari ini') {
-        showToast('Anda telah absen hari ini');
-      } else if (response.data.meta.absen) {
-        setVisible(true);
-      }
-    } catch (error) {
-      console.log(error);
-      showToast('Gagal Absen silahkan coba lagi / hubungi teknisi');
-    } finally {
-      setLoading(false);
-    }
   }
 
   const Header = (props) => (
@@ -136,10 +146,10 @@ export default function HomeScreen({ navigation }) {
       >
         <Avatar size='large' source={require('../assets/avatar.png')} />
         <View
-          style={{ marginLeft: 5, marginTop: 3 }}
+          style={{ marginLeft: 5, marginTop: 3, maxWidth: '60%' }}
         >
-          <Text category='s1'>{fullname}</Text>
-          <Text category='s2'>{bidang}</Text>
+          <Text category='s1' style={{ color: '#6C2A0C', fontWeight: '900' }}>{fullname}</Text>
+          <Text category='s2' style={{ color: '#6C2A0C' }}>{bidang}</Text>
         </View>
       </View>
       <View>
@@ -148,10 +158,15 @@ export default function HomeScreen({ navigation }) {
           onPress={LogoutEvent}
           style={{ marginBottom: 8 }}
         >Logout</Button>
-        <Button
-          size="small"
-          onPress={absensi}
-        >Absen Harian</Button>
+        {
+          role == 'UserEkonomi' || role == 'UserPembangunan' ?
+            <Button
+              size="small"
+              onPress={absensi}
+            >Absen Harian</Button> :
+            <View>
+            </View>
+        }
       </View>
     </View>
   );
@@ -168,49 +183,112 @@ export default function HomeScreen({ navigation }) {
       <View style={styles.container}>
         <Layout style={styles.topContainer} level='4'>
           <Card style={styles.card} header={Header}>
-            <Text>Performa bulan ini : {tambah_poin + (parseFloat(daily_point) > 30 ? 30 : parseFloat(daily_point)) + (parseFloat(activities_point) > 40 ? 40 : parseFloat(activities_point))} poin</Text>
+            {
+              role == 'UserEkonomi' || role == 'UserPembangunan' || role == 'Guest' ?
+                <Text>Performa bulan ini : {tambah_poin + (parseFloat(daily_point) > 30 ? 30 : parseFloat(daily_point)) + (parseFloat(activities_point) > 40 ? 40 : parseFloat(activities_point))} poin</Text> :
+                <View style={{ flexDirection: 'row' }}>
+                  <Text style={{ color: '#6C2A0C', fontWeight: '900' }}>Jabatan : </Text>
+                  <Text style={{ color: '#6C2A0C' }}>{jabatan}</Text>
+                </View>
+            }
           </Card>
         </Layout>
         <Layout style={styles.content}>
-          <View style={styles.icons}>
-            <TouchableOpacity
-              style={styles.button}
-              onPress={() => navigation.navigate('Kegiatan')}
-            >
-              <Image
-                style={{ width: 45, height: 45, justifyContent: 'center', alignSelf: 'center' }}
-                source={require('../assets/kegiatan_icon.png')}
-                resizeMode='center'
-              />
-              <Text
-                style={{ color: 'white', textAlign: 'center', marginTop: 4 }}
-              >Kegiatan</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.button}
-              onPress={() => navigation.navigate('Absensi')}
-            >
-              <Image
-                style={{ width: 45, height: 45, justifyContent: 'center', alignSelf: 'center' }}
-                source={require('../assets/absen_icon.png')}
-                resizeMode='center'
-              />
-              <Text
-                style={{ color: 'white', textAlign: 'center', marginTop: 4 }}>Absensi</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.button}
-              onPress={() => navigation.navigate('Visum')}
-            >
-              <Image
-                style={{ width: 45, height: 45, justifyContent: 'center', alignSelf: 'center' }}
-                source={require('../assets/visum_icon.png')}
-                resizeMode='center'
-              />
-              <Text
-                style={{ color: 'white', textAlign: 'center', marginTop: 4 }}>Visum</Text>
-            </TouchableOpacity>
-          </View>
+          {
+            role == 'UserPembangunan' || role == 'UserEkonomi' || role == 'Guest' ?
+              <View style={styles.icons}>
+                <TouchableOpacity
+                  style={styles.button}
+                  onPress={() => navigation.navigate('Kegiatan')}
+                >
+                  <Image
+                    style={{ width: 45, height: 45, justifyContent: 'center', alignSelf: 'center' }}
+                    source={require('../assets/kegiatan_icon.png')}
+                    resizeMode='center'
+                  />
+                  <Text
+                    style={{ color: 'white', textAlign: 'center', marginTop: 4 }}
+                  >Kegiatan</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.button}
+                  onPress={() => navigation.navigate('Absensi')}
+                >
+                  <Image
+                    style={{ width: 45, height: 45, justifyContent: 'center', alignSelf: 'center' }}
+                    source={require('../assets/absen_icon.png')}
+                    resizeMode='center'
+                  />
+                  <Text
+                    style={{ color: 'white', textAlign: 'center', marginTop: 4 }}>Absensi</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.button}
+                  onPress={() => navigation.navigate('Visum')}
+                >
+                  <Image
+                    style={{ width: 45, height: 45, justifyContent: 'center', alignSelf: 'center' }}
+                    source={require('../assets/visum_icon.png')}
+                    resizeMode='center'
+                  />
+                  <Text
+                    style={{ color: 'white', textAlign: 'center', marginTop: 4 }}>Visum</Text>
+                </TouchableOpacity>
+              </View> :
+              <View>
+                <View style={styles.icons}>
+                  <TouchableOpacity
+                    style={styles.button}
+                    onPress={() => navigation.navigate('Daftar Anggota')}
+                  >
+                    <Image
+                      style={{ width: 30, height: 30, justifyContent: 'center', alignSelf: 'center' }}
+                      source={require('../assets/anggota_icon.png')}
+                      resizeMode='center'
+                    />
+                    <Text
+                      style={{ color: 'white', textAlign: 'center', marginTop: 4 }}>Daftar Anggota</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.button}
+                    onPress={() => navigation.navigate('Daftar Kegiatan')}
+                  >
+                    <Image
+                      style={{ width: 30, height: 30, justifyContent: 'center', alignSelf: 'center' }}
+                      source={require('../assets/kegiatan_icon.png')}
+                      resizeMode='center'
+                    />
+                    <Text
+                      style={{ color: 'white', textAlign: 'center', marginTop: 4 }}
+                    >Daftar Kegiatan</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.button}
+                    onPress={() => navigation.navigate('Daftar Absensi')}
+                  >
+                    <Image
+                      style={{ width: 30, height: 30, justifyContent: 'center', alignSelf: 'center' }}
+                      source={require('../assets/harian_icon.png')}
+                      resizeMode='center'
+                    />
+                    <Text
+                      style={{ color: 'white', textAlign: 'center', marginTop: 4 }}>Absensi Harian</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.button}
+                    onPress={() => navigation.navigate('Daftar Visum')}
+                  >
+                    <Image
+                      style={{ width: 30, height: 30, justifyContent: 'center', alignSelf: 'center' }}
+                      source={require('../assets/visum_list_icon.png')}
+                      resizeMode='center'
+                    />
+                    <Text
+                      style={{ color: 'white', textAlign: 'center', marginTop: 4 }}>Daftar Visum</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+          }
         </Layout >
       </View >
     )
@@ -253,10 +331,10 @@ const themedStyles = StyleSheet.create({
     margin: 15
   }, button: {
     padding: 10,
-    height: 90,
-    width: 90,
-    marginHorizontal: 5,
-    marginVertical: 10,
+    height: 100,
+    width: 100,
+    marginHorizontal: 10,
+    marginVertical: 15,
     backgroundColor: 'color-primary-500',
     borderRadius: 10,
   }, iconKegiatan: {

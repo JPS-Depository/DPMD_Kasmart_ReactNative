@@ -15,6 +15,7 @@ import * as ImagePicker from 'expo-image-picker';
 import queryString from 'querystring';
 import axios from "axios";
 import moment from "moment/moment";
+import * as Camera from "expo-camera";
 
 export default function AbsensiScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
@@ -42,7 +43,7 @@ export default function AbsensiScreen({ navigation }) {
 
   async function getCurrentLocation() {
     try {
-      const { status } = await Location.requestBackgroundPermissionsAsync();
+      let { status } = await Location.requestForegroundPermissionsAsync();
       if (status == 'granted') {
         let currentLocation = await Location.getCurrentPositionAsync();
         setLocation({
@@ -56,13 +57,19 @@ export default function AbsensiScreen({ navigation }) {
   }
 
   const getCamera = async () => {
-    setLoading(true);
     try {
-      let result = await ImagePicker.launchCameraAsync({
-        base64: true
-      });
-      setImage(result.assets[0].base64);
-      setImageName('Foto telah diambil');
+      setLoading(true);
+      let { status: audioStatus } = await Camera.requestMicrophonePermissionsAsync();
+      let { status: cameraStatus } = await Camera.requestCameraPermissionsAsync();
+      if (audioStatus == 'granted' && cameraStatus == 'granted') {
+        let result = await ImagePicker.launchCameraAsync({
+          base64: true
+        });
+        setImage(result.assets[0].base64);
+        setImageName('Foto telah diambil');
+      } else {
+        showToast('Izinkan aplikasi menggunakan kamera');
+      }
     } catch (error) {
       setImage('');
       setImageName('Silahkan ambil foto');
@@ -92,7 +99,6 @@ export default function AbsensiScreen({ navigation }) {
             'image': image,
             'latitude': location.latitude,
             'longitude': location.longitude,
-            'jenis_absensi': selectedAbsen,
             'created_by': username,
             'in_out': selectedAbsen,
             'noreg': noreg
@@ -204,6 +210,7 @@ export default function AbsensiScreen({ navigation }) {
         <Button
           style={styles.submit}
           onPress={inputAbsensi}
+          disabled={loading ? true : false}
         >Submit Absensi</Button>
       </ScrollView >
     </View >
