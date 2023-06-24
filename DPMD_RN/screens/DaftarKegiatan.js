@@ -38,7 +38,7 @@ export default function KegiatanScreen({ navigation }) {
       setLoading(true);
       dispatch(getKecamatan())
         .then(result => {
-          if (role == 'SuperUserKecamatan') {
+          if (role == 5 || role == 6) {
             result.payload.forEach(element => {
               if (element.id == kecamatantugas_id) {
                 setKecamatan(element);
@@ -50,11 +50,15 @@ export default function KegiatanScreen({ navigation }) {
     }, [])
   );
 
+  async function loadKegiatan() {
+    setLoading(true);
+    dispatch(getKegiatan({
+      kecamatantugas_id: kecamatantugas_id,
+      role_id: role
+    }));
+  }
+
   useEffect(() => {
-    async function loadKegiatan() {
-      setLoading(true);
-      dispatch(getKegiatan(kecamatan.id));
-    }
     loadKegiatan();
     setLoading(false);
   }, [kecamatan]);
@@ -74,7 +78,7 @@ export default function KegiatanScreen({ navigation }) {
     >
       <View style={styles.container}>
         {
-          role == 'SuperUserKecamatan' ?
+          (role == 5 || role == 6) ?
             <Select
               label={() => <Text style={styles.label}>Kecamatan Tugas</Text>}
               style={styles.formInput}
@@ -111,7 +115,7 @@ export default function KegiatanScreen({ navigation }) {
                     return (
                       <Card style={styles.card}
                         key={el.id}
-                        header={<Header title={el.kegiatan} created_by={el.created_by} />}
+                        header={<Header title={el.kegiatan} created_by={el.user.pendamping.fullname} />}
                         onPress={() => { navigation.navigate('Detil Kegiatan', { kegiatan: el }) }}
                       >
                         <View
@@ -147,7 +151,7 @@ export default function KegiatanScreen({ navigation }) {
                             <Text style={{ color: '#6C2A0C', fontWeight: '900' }} >:</Text>
                           </View>
                           <View>
-                            <Text style={{ color: '#6C2A0C' }} >{el.kelurahan}</Text>
+                            <Text style={{ color: '#6C2A0C' }} >{el.kelurahan.nama}</Text>
                           </View>
                         </View>
                         <Text style={{ color: '#6C2A0C', fontWeight: '900', marginTop: 5 }} >Alamat Kegiatan :</Text>

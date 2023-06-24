@@ -39,20 +39,19 @@ export default function AbsensiScreen({ navigation }) {
       setLoading(true);
       const response = await axios({
         method: 'post',
-        url: 'https://dpmd-bengkalis.com/api/login',
+        url: 'http://10.0.2.2:8000/api/login',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
           'Accept': 'application/json'
         },
         data: queryString.stringify({ username: username, password: password })
       })
-      const { access_token, user } = response.data.data;
+      const { access_token, user } = response.data;
       await SecureStore.setItemAsync('access_token', access_token);
-      dispatch(inputIdUsername({ id: user.id, username: user.username, role: user.roles[0].name }));
+      dispatch(inputIdUsername({ id: user.id, username: user.username, role: user.roles[0].id }));
       setLoading(false);
       navigation.dispatch(StackActions.replace('Home'));
     } catch (error) {
-      console.log(error);
       showToast();
       setLoading(false);
     }

@@ -12,12 +12,14 @@ import { useDispatch, useSelector } from "react-redux";
 import { StackActions, useFocusEffect } from "@react-navigation/native";
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
+import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import queryString from 'querystring';
 import axios from "axios";
+import * as SecureStore from 'expo-secure-store';
 import moment from "moment/moment";
 import * as Camera from "expo-camera";
 
-export default function AbsensiScreen({ navigation }) {
+export default function RutinScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [kegiatan, setKegiatan] = useState('');
   const [location, setLocation] = useState({});
@@ -35,7 +37,12 @@ export default function AbsensiScreen({ navigation }) {
 
   useFocusEffect(
     useCallback(() => {
-      dispatch(getKegiatan(kecamatantugas_id));
+      dispatch(getKegiatan(
+        {
+          kecamatantugas_id: kecamatantugas_id,
+          jenis: 1,
+          visum: true
+        }));
       getCurrentLocation();
     }, [dispatch])
   );
@@ -46,10 +53,8 @@ export default function AbsensiScreen({ navigation }) {
       let { status: audioStatus } = await Camera.requestMicrophonePermissionsAsync();
       let { status: cameraStatus } = await Camera.requestCameraPermissionsAsync();
       if (audioStatus == 'granted' && cameraStatus == 'granted') {
-        let result = await ImagePicker.launchCameraAsync({
-          base64: true
-        });
-        setImage(result.assets[0].base64);
+        let result = await ImagePicker.launchCameraAsync();
+        await compress(result.assets[0].uri);
         setImageName('Foto telah diambil');
       } else {
         showToast('Izinkan aplikasi menggunakan kamera');
@@ -61,6 +66,20 @@ export default function AbsensiScreen({ navigation }) {
       setLoading(false);
     }
   }
+
+  const compress = async (gambar) => {
+    try {
+      const manipResult = await manipulateAsync(
+        gambar, [],
+        { compress: 0.2, format: SaveFormat.JPEG, base64: true }
+      );
+      setImage(manipResult.base64);
+    } catch (error) {
+      console.log(error);
+      setImage('');
+      setImageName('Silahkan ambil foto');
+    }
+  };
 
   async function getCurrentLocation() {
     try {
@@ -82,12 +101,14 @@ export default function AbsensiScreen({ navigation }) {
       getCurrentLocation();
       const tanggal = new Date();
       const formattedDate = moment(tanggal).format('YYYY-MM-DD');
+      const token = await SecureStore.getItemAsync('access_token');
       const response = await axios({
         method: 'post',
-        url: 'https://dpmd-bengkalis.com/api/inputvisum',
+        url: 'http://10.0.2.2:8000/api/inputvisum',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
-          'Accept': 'application/json'
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         data: queryString.stringify(
           {
@@ -101,15 +122,9 @@ export default function AbsensiScreen({ navigation }) {
           }
         )
       })
-      if (response.data.meta.status == "success") {
-        navigation.dispatch(StackActions.replace('Home'));
-      } else {
-        console.log(response.data);
-        showToast('Silahkan isi seluruh form yang diperlukan');
-      }
+      navigation.dispatch(StackActions.replace('Home'));
     } catch (error) {
-      console.log(error);
-      showToast('Gagal Menginputkan Data');
+      showToast(error.response.data.message);
     } finally {
       setLoading(false);
     }
@@ -129,21 +144,30 @@ export default function AbsensiScreen({ navigation }) {
       <ScrollView
         style={styles.container}
       >
-        <Select
-          label={() => <Text style={styles.label}>Kegiatan</Text>}
-          caption={() => <Text style={styles.caption}>Silahkan pilih kegiatan</Text>}
-          placeholder="Kegiatan"
-          value={kegiatan.kegiatan}
-          onSelect={index => setKegiatan(kegiatanData[index.row])}
-        >
-          {
-            kegiatanData.map(kegiatan => {
-              return (
-                <SelectItem title={kegiatan.kegiatan} key={kegiatan.id} />
-              )
-            })
-          }
-        </Select>
+        {
+          kegiatanData.length > 0 ? <Select
+            label={() => <Text style={styles.label}>Kegiatan</Text>}
+            caption={() => <Text style={styles.caption}>Silahkan pilih kegiatan</Text>}
+            placeholder="Kegiatan"
+            value={kegiatan.kegiatan}
+            onSelect={index => setKegiatan(kegiatanData[index.row])}
+          >
+            {
+              kegiatanData.map(kegiatan => {
+                return (
+                  <SelectItem title={kegiatan.kegiatan} key={kegiatan.id} />
+                )
+              })
+            }
+          </Select> :
+            <Select
+              label={() => <Text style={styles.label}>Kegiatan</Text>}
+              caption={() => <Text style={styles.caption}>Silahkan pilih kegiatan</Text>}
+              placeholder="Belum ada kegiatan"
+              disabled={true}
+            >
+            </Select>
+        }
         <View style={{ flex: 1, flexDirection: 'column', marginTop: 20 }}>
           <Text
             style={styles.headerDetail}
@@ -188,7 +212,7 @@ export default function AbsensiScreen({ navigation }) {
         <Button
           style={styles.submit}
           onPress={inputAbsensi}
-          disabled={loading ? true : false}
+          disabled={loading || kegiatanData.length == 0 ? true : false}
         >Submit Visum</Button>
       </ScrollView >
     </View >

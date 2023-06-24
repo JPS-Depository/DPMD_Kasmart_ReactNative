@@ -14,10 +14,9 @@ import { useDispatch, useSelector } from "react-redux";
 import { getKecamatan, kecamatanSelector } from "../features/kecamatanSlice";
 import { StackActions, useFocusEffect } from "@react-navigation/native";
 import { getKelurahanDesa, kelurahanSelector } from "../features/kelurahanDesaSlice";
-import * as ImagePicker from 'expo-image-picker';
-import * as Camera from 'expo-camera';
 import queryString from 'querystring';
 import moment from "moment";
+import { useEffect } from "react";
 
 export default function KegiatanScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
@@ -27,6 +26,7 @@ export default function KegiatanScreen({ navigation }) {
   const [namaKegiatan, setNamaKegiatan] = useState('');
   const [lokasiKegiatan, setLokasiKegiatan] = useState('');
   const [sasaranKegiatan, setSasaranKegiatan] = useState('');
+  const [jangkaKegiatan, setJangkaKegiatan] = useState('');
   const [jenisKegiatan, setJenisKegiatan] = useState('');
   const [kecamatan, setKecamatan] = useState('');
   const [kabupaten, setKabupaten] = useState('');
@@ -34,9 +34,7 @@ export default function KegiatanScreen({ navigation }) {
   const [status, setStatus] = useState('');
   const [indikator, setIndikator] = useState('-');
   const [date, setDate] = useState(new Date());
-  const [image, setImage] = useState('');
-  const [imageName, setImageName] = useState('Silahkan Pilih Gambar');
-  const jenisKegiatanData = ['Rutin', 'Harian', 'Wajib', 'Pilihan'];
+  const jenisKegiatanData = ['Rutin', 'Harian', 'Pemberdayaan', 'Pembangunan'];
   const kabupatenData = ['Bengkalis'];
   const statusData = ['Dalam Proses', 'Terealisasi', 'Belum Terealisasi'];
   const indikatorData = [
@@ -63,44 +61,6 @@ export default function KegiatanScreen({ navigation }) {
     ToastAndroid.show(notice, ToastAndroid.CENTER, ToastAndroid.BOTTOM, ToastAndroid.SHORT);
   }
 
-  const pickImage = async () => {
-    try {
-      let result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        quality: 1,
-        base64: true
-      });
-      setImage(result.assets[0].base64);
-      setImageName('1 Gambar telah dipilih');
-    } catch (error) {
-      setImage('');
-      setImageName('Silahkan Pilih Gambar');
-    }
-  }
-
-  const getCamera = async () => {
-    try {
-      setLoading(true);
-      let { status: audioStatus } = await Camera.requestMicrophonePermissionsAsync();
-      let { status: cameraStatus } = await Camera.requestCameraPermissionsAsync();
-      if (audioStatus == 'granted' && cameraStatus == 'granted') {
-        let result = await ImagePicker.launchCameraAsync({
-          base64: true
-        });
-        setImage(result.assets[0].base64);
-        setImageName('Foto telah diambil');
-      } else {
-        console.log('masuk');
-        showToast('Izinkan aplikasi menggunakan kamera');
-      }
-    } catch (error) {
-      setImage('');
-      setImageName('Silahkan ambil foto');
-    } finally {
-      setLoading(false);
-    }
-  }
-
   const { username } = useSelector(state => state.user);
 
   async function submitKegiatan() {
@@ -109,7 +69,7 @@ export default function KegiatanScreen({ navigation }) {
       const formattedDate = moment(tanggal).format('YYYY-MM-DD');
       const response = await axios({
         method: 'post',
-        url: 'https://dpmd-bengkalis.com/api/inputkegiatan',
+        url: 'http://10.0.2.2:8000/api/inputkegiatan',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
           'Accept': 'application/json'
@@ -127,19 +87,14 @@ export default function KegiatanScreen({ navigation }) {
             'detil_kegiatan': multilineInputState.multi,
             'status': status,
             'indikator': indikator,
-            'image': image,
+            'jangka_waktu': jangkaKegiatan,
             'created_by': username
           })
       })
-      if (response.data.meta.status == "success") {
-        navigation.dispatch(StackActions.replace('Home'));
-      } else {
-        console.log(response.data);
-        showToast('Silahkan isi seluruh form yang tersedia');
-      }
+      navigation.dispatch(StackActions.replace('Home'));
     } catch (error) {
-      console.log(error);
-      showToast('Gagal input, silahkan coba lagi atau hubungi admin');
+      console.log(error.response)
+      showToast(error.response.data.message);
       setLoading(false);
     }
   }
@@ -147,14 +102,16 @@ export default function KegiatanScreen({ navigation }) {
   useFocusEffect(
     useCallback(() => {
       setLoading(true);
-      dispatch(getKelurahanDesa())
+      dispatch(getKecamatan())
         .then(result => {
-          dispatch(getKecamatan()).then(result => {
-            setLoading(false);
-          });
+          setLoading(false);
         });
     }, [])
   );
+
+  useEffect(() => {
+    dispatch(getKelurahanDesa(kecamatan.id));
+  }, [kecamatan])
 
 
   return (
@@ -221,6 +178,7 @@ export default function KegiatanScreen({ navigation }) {
           label={() => <Text style={styles.label}>Kelurahan / Desa</Text>}
           style={styles.formInput}
           value={keldes.nama}
+          placeholder="Kelurahan"
           onSelect={index => setKeldes(keldesData[index.row])}
         >
           {
@@ -273,10 +231,10 @@ export default function KegiatanScreen({ navigation }) {
         <Select
           label={() => <Text style={styles.label}>Indikator Kegiatan</Text>}
           style={styles.formInput}
-          value={jenisKegiatan == 'Wajib' || jenisKegiatan == 'Pilihan' ? indikator : '-'}
-          disabled={jenisKegiatan == 'Wajib' || jenisKegiatan == 'Pilihan' ? false : true}
+          value={jenisKegiatan == 'Pembangunan' || jenisKegiatan == 'Pemberdayaan' ? indikator : '-'}
+          disabled={jenisKegiatan == 'Pembangunan' || jenisKegiatan == 'Pemberdayaan' ? false : true}
           placeholder='Pilih Indikator Kegiatan'
-          caption={() => <Text style={styles.caption}>Hanya untuk Jenis Kegiatan Wajib / Pilihan</Text>}
+          caption={() => <Text style={styles.caption}>Hanya untuk Jenis Kegiatan Pembangunan / Pemberdayaan</Text>}
           onSelect={index => setIndikator(indikatorData[index.row])}
         >
           {
@@ -287,36 +245,16 @@ export default function KegiatanScreen({ navigation }) {
             })
           }
         </Select>
-        <View
-          style={{ flex: 1, flexDirection: 'row', alignItems: 'center', marginTop: 20 }}
-        >
-          <View>
-            <Button
-              style={styles.imagePicker}
-              onPress={pickImage}
-              size='small'
-            >Pilih Gambar</Button>
-            <Text
-              style={{ textAlign: 'center', marginVertical: 5 }}
-            >atau</Text>
-            <Button
-              style={styles.imagePicker}
-              onPress={getCamera}
-              size='small'
-            >Ambil Foto</Button>
-          </View>
-          {
-            loading ?
-              <View
-                style={{ flex: 1, alignItems: 'center' }}
-              >
-                <Spinner />
-              </View> :
-              <Text
-                style={{ marginLeft: 20 }}
-              >{imageName}</Text>
-          }
-        </View>
+        <Input
+          value={jenisKegiatan == 'Pembangunan' || jenisKegiatan == 'Pemberdayaan' ? jangkaKegiatan : 1}
+          disabled={jenisKegiatan == 'Pembangunan' || jenisKegiatan == 'Pemberdayaan' ? false : true}
+          label={() => <Text style={styles.label}>Jangka Waktu Kegiatan</Text>}
+          keyboardType='numeric'
+          placeholder='Jangka Waktu Kegiatan ( Hari )'
+          caption={() => <Text style={styles.caption}>Hanya untuk Jenis Kegiatan Pembangunan / Pemberdayaan</Text>}
+          onChangeText={nextValue => setJangkaKegiatan(nextValue)}
+          style={styles.formInput}
+        />
         <Button
           style={styles.submit}
           onPress={submitKegiatan}
@@ -347,7 +285,5 @@ const themedStyles = StyleSheet.create({
   }, submit: {
     marginBottom: 40,
     marginTop: 20
-  }, imagePicker: {
-    width: 130
   }
 });

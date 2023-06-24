@@ -2,19 +2,34 @@ import { createSlice, createAsyncThunk, createEntityAdapter } from "@reduxjs/too
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
-export const getKegiatan = createAsyncThunk("kegiatan/getKegiatan", async (kecamatantugas_id) => {
+export const getKegiatan = createAsyncThunk("kegiatan/getKegiatan", async (parameter) => {
   const token = await SecureStore.getItemAsync('access_token');
-  const response = await axios({
-    method: 'get',
-    url: 'https://dpmd-bengkalis.com/api/kegiatan',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Accept': 'application/json',
-      'Authorization': `Bearer ${token}`
-    },
-    params: { kecamatantugas_id: kecamatantugas_id }
-  })
-  return response.data;
+  try {
+    let params = {
+      kecamatantugas_id: parameter.kecamatantugas_id,
+    }
+    if (parameter.role_id) {
+      params.role = parameter.role_id
+    }
+    if (parameter.jenis) {
+      params.jenis = parameter.jenis
+    }
+    if (parameter.visum) {
+      params.visum = parameter.visum
+    }
+    const response = await axios({
+      method: 'get',
+      url: 'http://10.0.2.2:8000/api/kegiatan',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      params: params
+    })
+    return response.data
+  } catch (error) {
+  }
 })
 
 const kegiatanEntity = createEntityAdapter({

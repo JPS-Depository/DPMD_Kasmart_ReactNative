@@ -17,7 +17,7 @@ import { StackActions, useFocusEffect } from "@react-navigation/native";
 import queryString from 'querystring';
 import moment from "moment";
 import 'moment/locale/id';
-import Lightbox from "react-native-lightbox";
+import Lightbox from "react-native-lightbox-v2";
 import { getAnggota, anggotaSelector } from "../features/anggotaSlice";
 moment.locale('id');
 
@@ -45,7 +45,7 @@ export default function AbsensiScreen({ navigation }) {
       setLoading(true);
       dispatch(getKecamatan())
         .then(result => {
-          if (role == 'SuperUserKecamatan') {
+          if (role == 5 || role == 6) {
             result.payload.forEach(element => {
               if (element.id == kecamatantugas_id) {
                 setKecamatan(element);
@@ -57,15 +57,21 @@ export default function AbsensiScreen({ navigation }) {
     }, [])
   );
 
-  useEffect(() => {
+  async function loadAnggota() {
     setLoading(true);
-    dispatch(getAnggota(kecamatan.id))
-      .then(result => {
-        setLoading(false);
-      })
-      .catch(err => {
-        console.log(err);
-      })
+    dispatch(getAnggota({
+      kecamatan_id: kecamatan.id,
+      role: role
+    }));
+  }
+  useEffect(() => {
+    try {
+      loadAnggota();
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setLoading(false);
+    }
   }, [kecamatan]);
 
 
@@ -73,7 +79,11 @@ export default function AbsensiScreen({ navigation }) {
     <View
       style={styles.profile}
     >
-      <Avatar size='large' source={require('../assets/avatar.png')} />
+      {
+        person.image ?
+          <Avatar size='large' source={{ uri: `https://dpmd-bengkalis.com/storage/${person.image}` }} /> :
+          <Avatar size='large' source={require('../assets/avatar.png')} />
+      }
       <Text style={{ color: '#6C2A0C', fontWeight: '900', maxWidth: '60%', marginLeft: 10 }} >{person.fullname}</Text>
     </View>
   );
@@ -84,7 +94,7 @@ export default function AbsensiScreen({ navigation }) {
     >
       <View style={styles.container}>
         {
-          role == 'SuperUserKecamatan' ?
+          (role == 5 || role == 6) ?
             <Select
               label={() => <Text style={styles.label}>Kecamatan Tugas</Text>}
               style={styles.formInput}
@@ -141,10 +151,17 @@ export default function AbsensiScreen({ navigation }) {
                             <View
                               style={{ flexDirection: 'row', maxWidth: '60%', alignItems: 'center' }}
                             >
-                              <Avatar size='large' source={require('../assets/avatar.png')} />
+                              {
+                                el.image ?
+                                  <Avatar size='large' source={{ uri: `https://dpmd-bengkalis.com/storage/${el.image}` }} /> :
+                                  <Avatar size='large' source={require('../assets/avatar.png')} />
+                              }
                               <Text style={{ color: '#6C2A0C', fontWeight: '900', marginLeft: 10 }} >{el.fullname}</Text>
                             </View>
-                            <Text style={{ color: '#6C2A0C', fontWeight: '400', maxWidth: '40%' }}>{el.score}</Text>
+                            <Text style={{ color: '#6C2A0C', fontWeight: '400', maxWidth: '40%' }}>
+                              {30 + ((el.users.harians.length > 0 ? (parseFloat(el.users.harians[0].total_harian) > 30 ? 30 : parseFloat(el.users.harians[0].total_harian)) : 0))
+                                + ((el.users.absen.length > 0 ? (parseFloat(el.users.absen[0].total_absen) > 30 ? 30 : parseFloat(el.users.absen[0].total_absen)) : 0))}
+                            </Text>
                           </View>
                         </Card>
                       )
@@ -180,7 +197,6 @@ export default function AbsensiScreen({ navigation }) {
                     <Text style={{ color: '#6C2A0C', fontWeight: '900' }}>Nomor Registrasi</Text>
                     <Text style={{ color: '#6C2A0C', fontWeight: '900' }}>Kelurahan Tugas</Text>
                     <Text style={{ color: '#6C2A0C', fontWeight: '900' }}>Abensi Harian</Text>
-                    <Text style={{ color: '#6C2A0C', fontWeight: '900' }}>Jumlah Visum</Text>
                     <Text style={{ color: '#6C2A0C', fontWeight: '900' }}>Absensi Kegiatan</Text>
                     <Text style={{ color: '#6C2A0C', fontWeight: '900' }}>Bobot Nilai</Text>
                   </View>
@@ -192,17 +208,16 @@ export default function AbsensiScreen({ navigation }) {
                     <Text style={{ color: '#6C2A0C', fontWeight: '900' }}>:</Text>
                     <Text style={{ color: '#6C2A0C', fontWeight: '900' }}>:</Text>
                     <Text style={{ color: '#6C2A0C', fontWeight: '900' }}>:</Text>
-                    <Text style={{ color: '#6C2A0C', fontWeight: '900' }}>:</Text>
                   </View>
                   <View
                     style={{ flexDirection: 'column' }}
                   >
-                    <Text style={{ color: '#6C2A0C' }}>{person.noreg}</Text>
-                    <Text style={{ color: '#6C2A0C' }}>{person.kelurahanTugas}</Text>
-                    <Text style={{ color: '#6C2A0C' }}>{person.countDaily}</Text>
-                    <Text style={{ color: '#6C2A0C' }}>{person.countActivities}</Text>
-                    <Text style={{ color: '#6C2A0C' }}>{person.countVisum}</Text>
-                    <Text style={{ color: '#6C2A0C' }}>{person.score}</Text>
+                    <Text style={{ color: '#6C2A0C' }}>{person.users.noreg}</Text>
+                    <Text style={{ color: '#6C2A0C' }}>{person.kelurahantugas.nama}</Text>
+                    <Text style={{ color: '#6C2A0C' }}>{person.users.harians.length > 0 ? person.users.harians[0].count_harian : 0}</Text>
+                    <Text style={{ color: '#6C2A0C' }}>{person.users.absen.length > 0 ? person.users.absen[0].count_absen : 0}</Text>
+                    <Text style={{ color: '#6C2A0C' }}>{30 + ((person.users.harians.length > 0 ? (parseFloat(person.users.harians[0].total_harian) > 30 ? 30 : parseFloat(person.users.harians[0].total_harian)) : 0))
+                      + ((person.users.absen.length > 0 ? (parseFloat(person.users.absen[0].total_absen) > 30 ? 30 : parseFloat(person.users.absen[0].total_absen)) : 0))}</Text>
                   </View>
                 </View>
               </Card>

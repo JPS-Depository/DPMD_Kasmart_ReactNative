@@ -2,16 +2,17 @@ import { createSlice, createAsyncThunk, createEntityAdapter } from "@reduxjs/too
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
-export const getKelurahanDesa = createAsyncThunk("kelurahandesa/getKelurahanDesa", async () => {
+export const getKelurahanDesa = createAsyncThunk("kelurahandesa/getKelurahanDesa", async (kecamatan_id) => {
   const token = await SecureStore.getItemAsync('access_token');
   const response = await axios({
     method: 'get',
-    url: 'https://dpmd-bengkalis.com/api/kelurahan',
+    url: 'http://10.0.2.2:8000/api/kelurahan',
     headers: {
       'Authorization': `Bearer ${token}`
-    }
+    },
+    params: { kecamatan_id: kecamatan_id }
   })
-  return response.data.data.kelurahan;
+  return response.data.kelurahan;
 })
 
 const kelurahanEntity = createEntityAdapter({

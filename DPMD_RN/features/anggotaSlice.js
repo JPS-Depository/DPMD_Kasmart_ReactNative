@@ -2,19 +2,22 @@ import { createSlice, createAsyncThunk, createEntityAdapter } from "@reduxjs/too
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
-export const getAnggota = createAsyncThunk("anggota/getAnggota", async (kecamatantugas_id) => {
-  const token = await SecureStore.getItemAsync('access_token');
-  const response = await axios({
-    method: 'get',
-    url: 'https://dpmd-bengkalis.com/api/getPendamping',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Accept': 'application/json',
-      'Authorization': `Bearer ${token}`
-    },
-    params: { kecamatantugas_id: kecamatantugas_id }
-  });
-  return response.data.data;
+export const getAnggota = createAsyncThunk("anggota/getAnggota", async (params) => {
+  try {
+    const token = await SecureStore.getItemAsync('access_token');
+    const response = await axios({
+      method: 'get',
+      url: 'http://10.0.2.2:8000/api/getPendamping',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      params: { kecamatantugas_id: params.kecamatan_id, role: params.role }
+    });
+    return response.data;
+  } catch (error) {
+  }
 })
 
 const anggotaEntity = createEntityAdapter({
@@ -26,7 +29,7 @@ export const anggotaSlice = createSlice({
   initialState: anggotaEntity.getInitialState(),
   extraReducers: {
     [getAnggota.fulfilled]: (state, action) => {
-      anggotaEntity.setAll(state, action.payload.pendamping);
+      anggotaEntity.setAll(state, action.payload.pendampings);
     }
   }
 });

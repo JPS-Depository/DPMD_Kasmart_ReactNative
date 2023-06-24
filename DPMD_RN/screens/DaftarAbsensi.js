@@ -16,7 +16,7 @@ import { StackActions, useFocusEffect } from "@react-navigation/native";
 import queryString from 'querystring';
 import moment from "moment";
 import 'moment/locale/id';
-import Lightbox from "react-native-lightbox";
+import Lightbox from "react-native-lightbox-v2";
 import { getHarian, harianSelector } from "../features/harianSlice";
 moment.locale('id');
 
@@ -44,7 +44,7 @@ export default function AbsensiScreen({ navigation }) {
       setLoading(true);
       dispatch(getKecamatan())
         .then(result => {
-          if (role == 'SuperUserKecamatan') {
+          if (role == 5 || role == 6) {
             result.payload.forEach(element => {
               if (element.id == kecamatantugas_id) {
                 setKecamatan(element);
@@ -57,7 +57,10 @@ export default function AbsensiScreen({ navigation }) {
 
   useEffect(() => {
     setLoading(true);
-    dispatch(getHarian(kecamatan.id))
+    dispatch(getHarian({
+      kecamatan_id: kecamatan.id,
+      role: role
+    }))
       .then(result => {
         setLoading(false);
       })
@@ -78,7 +81,7 @@ export default function AbsensiScreen({ navigation }) {
     >
       <View style={styles.container}>
         {
-          role == 'SuperUserKecamatan' ?
+          (role == 5 || role == 6) ?
             <Select
               label={() => <Text style={styles.label}>Kecamatan Tugas</Text>}
               style={styles.formInput}
@@ -172,7 +175,6 @@ export default function AbsensiScreen({ navigation }) {
                     style={{ flexDirection: 'column' }}
                   >
                     <Text style={{ color: '#6C2A0C' }}>{moment(person.created_at).format('Do MMMM YYYY, h:mm')}</Text>
-                    <Text style={{ color: '#6C2A0C' }}>{person.keterangan}</Text>
                   </View>
                 </View>
                 <View>
@@ -180,6 +182,7 @@ export default function AbsensiScreen({ navigation }) {
                     <Image
                       style={{ height: 200, resizeMode: 'center' }}
                       source={{ uri: `https://dpmd-bengkalis.com/storage/${person.image}` }}
+                    // source={{ uri: `https://media.istockphoto.com/id/610864024/photo/couple-kayaking-together.jpg?s=612x612&w=0&k=20&c=zeioetaU5WM6uUnZAGoWBHnkilMeK1pexGX1ZitPU1o=` }}
                     />
                   </Lightbox>
                 </View>

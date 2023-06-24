@@ -15,11 +15,23 @@ export default function HomeScreen({ navigation }) {
   const styles = useStyleSheet(themedStyles);
 
   const LogoutEvent = async () => {
-    await SecureStore.deleteItemAsync('access_token')
-    navigation.dispatch(StackActions.replace('Login'));
+    try {
+      const token = await SecureStore.getItemAsync('access_token');
+      await SecureStore.deleteItemAsync('access_token')
+      await axios({
+        method: 'post',
+        url: 'http://10.0.2.2:8000/api/logout',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      navigation.dispatch(StackActions.replace('Login'));
+    } catch (error) {
+      console.log(error);
+    }
   }
 
-  const { username, role, fullname, bidang, tambah_poin, kecamatantugas_id, noreg, daily_point, activities_point, jabatan } = useSelector(state => state.user);
+  const { username, role, fullname, bidang, tambah_poin, kecamatantugas_id, noreg, harian, absen, jabatan, avatar } = useSelector(state => state.user);
   const [loading, setLoading] = useState(true);
   const [image, setImage] = useState('');
   const [visible, setVisible] = useState(false);
@@ -33,25 +45,38 @@ export default function HomeScreen({ navigation }) {
           const token = await SecureStore.getItemAsync('access_token');
           const response = await axios({
             'method': 'get',
-            'url': 'https://dpmd-bengkalis.com/api/pendamping',
+            'url': 'http://10.0.2.2:8000/api/pendamping',
             'headers': {
               'Authorization': `Bearer ${token}`
             }
           })
-          const user = response.data.data.pendamping[0]
-          dispatch(inputOther({
+          const user = response.data.pendamping;
+          const profil = {
             fullname: user.fullname,
             noreg: user.noreg,
             bidang: user.bidang,
             tambah_poin: user.tambah_poin,
             jabatan: user.jabatan,
             kecamatantugas_id: user.kecamatantugas_id,
-            daily_point: user.daily_point,
-            activities_point: user.activities_point
-          }));
+            avatar: user.image,
+          }
+
+          if (user.users.absen.length == 0) {
+            profil.absen = 0;
+          } else {
+            profil.absen = user.users.absen[0].total_absen;
+          }
+
+          if (user.users.harians.length == 0) {
+            profil.harian = 0;
+          } else {
+            profil.harian = user.users.harians[0].total_harian
+          }
+          dispatch(inputOther(profil));
           setLoading(false);
         } catch (error) {
-          showToast('Terjadi Kesalahan silahkan hubungi contact person');
+          console.log(error);
+          showToast('Terjadi Kesalahan. Hubungi Contact Person');
           setLoading(false);
         }
       }
@@ -93,7 +118,7 @@ export default function HomeScreen({ navigation }) {
         const formattedDate = moment(tanggal).format('YYYY-MM-DD');
         return axios({
           method: 'post',
-          url: 'https://dpmd-bengkalis.com/api/harian',
+          url: 'http://10.0.2.2:8000/api/harian',
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/x-www-form-urlencoded',
@@ -111,14 +136,14 @@ export default function HomeScreen({ navigation }) {
           )
         })
       }).then(response => {
-        console.log(response.data);
         if (response.data.meta.message == 'Anda telah absen hari ini') {
           showToast('Anda telah absen hari ini');
         } else if (response.data.data.absen) {
           setVisible(true);
         }
       }).catch(error => {
-        showToast('Gagal Absen silahkan coba lagi / hubungi teknisi')
+        console.log(error);
+        showToast('Gagal Absen silahkan coba lagi')
       }).finally(() => {
         setLoading(false);
       })
@@ -144,7 +169,11 @@ export default function HomeScreen({ navigation }) {
       <View
         style={{ flex: 1, flexDirection: 'row' }}
       >
-        <Avatar size='large' source={require('../assets/avatar.png')} />
+        {
+          avatar ?
+            <Avatar size='large' source={{ uri: `https://dpmd-bengkalis.com/storage/${avatar}` }} /> :
+            <Avatar size='large' source={require('../assets/avatar.png')} />
+        }
         <View
           style={{ marginLeft: 5, marginTop: 3, maxWidth: '60%' }}
         >
@@ -159,7 +188,7 @@ export default function HomeScreen({ navigation }) {
           style={{ marginBottom: 8 }}
         >Logout</Button>
         {
-          role == 'UserEkonomi' || role == 'UserPembangunan' ?
+          role == 7 || role == 8 ?
             <Button
               size="small"
               onPress={absensi}
@@ -183,57 +212,68 @@ export default function HomeScreen({ navigation }) {
       <View style={styles.container}>
         <Layout style={styles.topContainer} level='4'>
           <Card style={styles.card} header={Header}>
+            <View style={{ flexDirection: 'row' }}>
+              <Text style={{ color: '#6C2A0C', fontWeight: '900' }}>Jabatan : </Text>
+              <Text style={{ color: '#6C2A0C' }}>{jabatan}</Text>
+            </View>
             {
-              role == 'UserEkonomi' || role == 'UserPembangunan' || role == 'Guest' ?
-                <Text>Performa bulan ini : {tambah_poin + (parseFloat(daily_point) > 30 ? 30 : parseFloat(daily_point)) + (parseFloat(activities_point) > 40 ? 40 : parseFloat(activities_point))} poin</Text> :
+              role == 7 || role == 8 || role == 9 ?
                 <View style={{ flexDirection: 'row' }}>
-                  <Text style={{ color: '#6C2A0C', fontWeight: '900' }}>Jabatan : </Text>
-                  <Text style={{ color: '#6C2A0C' }}>{jabatan}</Text>
-                </View>
+                  <Text style={{ color: '#6C2A0C', fontWeight: '900', marginRight: 5 }}>Nilai bulan ini :</Text>
+                  <Text style={{ color: '#6C2A0C' }}>{tambah_poin + (parseFloat(harian) > 30 ? 30 : parseFloat(harian)) + (parseFloat(absen) > 40 ? 40 : parseFloat(absen))} poin</Text>
+                </View> :
+                <View></View>
             }
           </Card>
         </Layout>
         <Layout style={styles.content}>
           {
-            role == 'UserPembangunan' || role == 'UserEkonomi' || role == 'Guest' ?
-              <View style={styles.icons}>
-                <TouchableOpacity
-                  style={styles.button}
-                  onPress={() => navigation.navigate('Kegiatan')}
-                >
-                  <Image
-                    style={{ width: 45, height: 45, justifyContent: 'center', alignSelf: 'center' }}
-                    source={require('../assets/kegiatan_icon.png')}
-                    resizeMode='center'
-                  />
-                  <Text
-                    style={{ color: 'white', textAlign: 'center', marginTop: 4 }}
-                  >Kegiatan</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.button}
-                  onPress={() => navigation.navigate('Absensi')}
-                >
-                  <Image
-                    style={{ width: 45, height: 45, justifyContent: 'center', alignSelf: 'center' }}
-                    source={require('../assets/absen_icon.png')}
-                    resizeMode='center'
-                  />
-                  <Text
-                    style={{ color: 'white', textAlign: 'center', marginTop: 4 }}>Absensi</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.button}
-                  onPress={() => navigation.navigate('Visum')}
-                >
-                  <Image
-                    style={{ width: 45, height: 45, justifyContent: 'center', alignSelf: 'center' }}
-                    source={require('../assets/visum_icon.png')}
-                    resizeMode='center'
-                  />
-                  <Text
-                    style={{ color: 'white', textAlign: 'center', marginTop: 4 }}>Visum</Text>
-                </TouchableOpacity>
+            role == 7 || role == 8 || role == 9 ?
+              <View>
+                <View style={{ alignSelf: 'center' }}>
+                  <TouchableOpacity
+                    style={styles.button}
+                    onPress={() => navigation.navigate('Kegiatan')}
+                  >
+                    <Image
+                      style={{ width: 45, height: 45, justifyContent: 'center', alignSelf: 'center' }}
+                      source={require('../assets/kegiatan_icon.png')}
+                      resizeMode='center'
+                    />
+                    <Text
+                      style={{ color: 'white', textAlign: 'center', marginTop: 4 }}
+                    >Kegiatan</Text>
+                  </TouchableOpacity>
+                </View>
+                <Card style={styles.visum}>
+                  <Text category='s1' style={{ color: '#6C2A0C', fontWeight: '900', textAlign: 'center' }}>Visum Kegiatan</Text>
+                  <View style={{ flex: 1, flexDirection: 'row' }}>
+                    <TouchableOpacity
+                      style={styles.button}
+                      onPress={() => navigation.navigate('Rutin')}
+                    >
+                      <Image
+                        style={{ width: 45, height: 45, justifyContent: 'center', alignSelf: 'center' }}
+                        source={require('../assets/clock-outline.png')}
+                        resizeMode='center'
+                      />
+                      <Text
+                        style={{ color: 'white', textAlign: 'center', marginTop: 4, fontSize: 14 }}>Rutin / Harian</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.button}
+                      onPress={() => navigation.navigate('Bermasa')}
+                    >
+                      <Image
+                        style={{ width: 45, height: 45, justifyContent: 'center', alignSelf: 'center' }}
+                        source={require('../assets/calendar-outline.png')}
+                        resizeMode='center'
+                      />
+                      <Text
+                        style={{ color: 'white', textAlign: 'center', marginTop: 4 }}>Bermasa</Text>
+                    </TouchableOpacity>
+                  </View>
+                </Card>
               </View> :
               <View>
                 <View style={styles.icons}>
@@ -274,18 +314,6 @@ export default function HomeScreen({ navigation }) {
                     <Text
                       style={{ color: 'white', textAlign: 'center', marginTop: 4 }}>Absensi Harian</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.button}
-                    onPress={() => navigation.navigate('Daftar Visum')}
-                  >
-                    <Image
-                      style={{ width: 30, height: 30, justifyContent: 'center', alignSelf: 'center' }}
-                      source={require('../assets/visum_list_icon.png')}
-                      resizeMode='center'
-                    />
-                    <Text
-                      style={{ color: 'white', textAlign: 'center', marginTop: 4 }}>Daftar Visum</Text>
-                  </TouchableOpacity>
                 </View>
               </View>
           }
@@ -311,9 +339,7 @@ const themedStyles = StyleSheet.create({
     backgroundColor: 'color-primary-200'
   }, content: {
     flex: 1,
-    flexWrap: 'wrap',
     flexGrow: 3,
-    flexDirection: 'row',
     alignSelf: 'stretch',
     backgroundColor: 'color-primary-100'
   }, profile: {
@@ -345,5 +371,10 @@ const themedStyles = StyleSheet.create({
   }, modalText: {
     textAlign: 'center',
     color: 'color-primary-800'
+  }, visum: {
+    margin: 20,
+    height: 170,
+    alignItems: 'center',
+    backgroundColor: 'color-primary-300'
   }
 })

@@ -2,19 +2,19 @@ import { createSlice, createAsyncThunk, createEntityAdapter } from "@reduxjs/too
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
-export const getHarian = createAsyncThunk("harian/getHarian", async (kecamatantugas_id) => {
+export const getHarian = createAsyncThunk("harian/getHarian", async (params) => {
   const token = await SecureStore.getItemAsync('access_token');
   const response = await axios({
     method: 'get',
-    url: 'https://dpmd-bengkalis.com/api/daftarharian',
+    url: 'http://10.0.2.2:8000/api/daftarharian',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
       'Accept': 'application/json',
       'Authorization': `Bearer ${token}`
     },
-    params: { kecamatantugas_id: kecamatantugas_id }
+    params: { kecamatantugas_id: params.kecamatan_id, role: params.role }
   })
-  return response.data.data.harian;
+  return response.data;
 })
 
 const harianEntity = createEntityAdapter({
@@ -26,7 +26,7 @@ export const harianSlice = createSlice({
   initialState: harianEntity.getInitialState(),
   extraReducers: {
     [getHarian.fulfilled]: (state, action) => {
-      harianEntity.setAll(state, action.payload);
+      harianEntity.setAll(state, action.payload.harian);
     }
   }
 });

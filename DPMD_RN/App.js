@@ -10,14 +10,12 @@ import HomeScreen from './screens/Home';
 import SplashScreen from './screens/Splash';
 import LoginScreen from './screens/Login';
 import KegiatanScreen from './screens/Kegiatan';
-import VisumScreen from './screens/Visum';
-import AbsensiScreen from './screens/Absensi';
+import RutinScreen from './screens/Rutin';
+import MasaScreen from './screens/Bermasa';
 import DetilKegiatan from './screens/DetilKegiatan';
 import DaftarKegiatan from './screens/DaftarKegiatan';
 import DaftarAbsensi from './screens/DaftarAbsensi';
 import DaftarAnggota from './screens/DaftarAnggota';
-import DaftarVisum from './screens/DaftarVisum';
-import DetilVisum from './screens/DetilVisum';
 import { Provider } from 'react-redux';
 import { store } from './store/store';
 
@@ -41,10 +39,10 @@ export default function App() {
                 <Stack.Screen name="Kegiatan" component={KegiatanScreen} options={{
                   headerShown: true, headerStyle: { backgroundColor: '#ECB56F' }
                 }} />
-                <Stack.Screen name="Visum" component={VisumScreen} options={{
+                <Stack.Screen name="Rutin" component={RutinScreen} options={{
                   headerShown: true, headerStyle: { backgroundColor: '#ECB56F' }
                 }} />
-                <Stack.Screen name="Absensi" component={AbsensiScreen} options={{
+                <Stack.Screen name="Bermasa" component={MasaScreen} options={{
                   headerShown: true, headerStyle: { backgroundColor: '#ECB56F' }
                 }} />
                 <Stack.Screen name="Daftar Kegiatan" component={DaftarKegiatan} options={{
@@ -57,12 +55,6 @@ export default function App() {
                   headerShown: true, headerStyle: { backgroundColor: '#ECB56F' }
                 }} />
                 <Stack.Screen name="Daftar Anggota" component={DaftarAnggota} options={{
-                  headerShown: true, headerStyle: { backgroundColor: '#ECB56F' }
-                }} />
-                <Stack.Screen name="Daftar Visum" component={DaftarVisum} options={{
-                  headerShown: true, headerStyle: { backgroundColor: '#ECB56F' }
-                }} />
-                <Stack.Screen name="Detil Visum" component={DetilVisum} options={{
                   headerShown: true, headerStyle: { backgroundColor: '#ECB56F' }
                 }} />
               </Stack.Navigator>
