@@ -7,7 +7,7 @@ export const getAnggota = createAsyncThunk("anggota/getAnggota", async (params) 
     const token = await SecureStore.getItemAsync('access_token');
     const response = await axios({
       method: 'get',
-      url: 'http://10.0.2.2:8000/api/getPendamping',
+      url: 'https://dpmd-bengkalis.com/api/getPendamping',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
         'Accept': 'application/json',

@@ -69,7 +69,7 @@ export default function KegiatanScreen({ navigation }) {
       const formattedDate = moment(tanggal).format('YYYY-MM-DD');
       const response = await axios({
         method: 'post',
-        url: 'http://10.0.2.2:8000/api/inputkegiatan',
+        url: 'https://dpmd-bengkalis.com/api/inputkegiatan',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
           'Accept': 'application/json'

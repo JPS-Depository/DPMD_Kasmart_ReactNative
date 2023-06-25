@@ -109,7 +109,7 @@ export default function RutinScreen({ navigation }) {
       if (pembangunan[pembangunan.length - 1].visum != null) {
         await axios({
           method: 'post',
-          url: 'http://10.0.2.2:8000/api/inputpembangunan',
+          url: 'https://dpmd-bengkalis.com/api/inputpembangunan',
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
             'Accept': 'application/json',
@@ -125,7 +125,7 @@ export default function RutinScreen({ navigation }) {
         })
         const response = await axios({
           method: 'get',
-          url: 'http://10.0.2.2:8000/api/pembangunan',
+          url: 'https://dpmd-bengkalis.com/api/pembangunan',
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
             'Accept': 'application/json',
@@ -152,7 +152,7 @@ export default function RutinScreen({ navigation }) {
       const token = await SecureStore.getItemAsync('access_token');
       const response = await axios({
         method: 'post',
-        url: 'http://10.0.2.2:8000/api/inputvisum',
+        url: 'https://dpmd-bengkalis.com/api/inputvisum',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
           'Accept': 'application/json',

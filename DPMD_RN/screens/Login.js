@@ -39,7 +39,7 @@ export default function AbsensiScreen({ navigation }) {
       setLoading(true);
       const response = await axios({
         method: 'post',
-        url: 'http://10.0.2.2:8000/api/login',
+        url: 'https://dpmd-bengkalis.com/api/login',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
           'Accept': 'application/json'

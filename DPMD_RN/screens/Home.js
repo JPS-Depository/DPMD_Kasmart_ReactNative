@@ -20,7 +20,7 @@ export default function HomeScreen({ navigation }) {
       await SecureStore.deleteItemAsync('access_token')
       await axios({
         method: 'post',
-        url: 'http://10.0.2.2:8000/api/logout',
+        url: 'https://dpmd-bengkalis.com/api/logout',
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -45,7 +45,7 @@ export default function HomeScreen({ navigation }) {
           const token = await SecureStore.getItemAsync('access_token');
           const response = await axios({
             'method': 'get',
-            'url': 'http://10.0.2.2:8000/api/pendamping',
+            'url': 'https://dpmd-bengkalis.com/api/pendamping',
             'headers': {
               'Authorization': `Bearer ${token}`
             }
@@ -118,7 +118,7 @@ export default function HomeScreen({ navigation }) {
         const formattedDate = moment(tanggal).format('YYYY-MM-DD');
         return axios({
           method: 'post',
-          url: 'http://10.0.2.2:8000/api/harian',
+          url: 'https://dpmd-bengkalis.com/api/harian',
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/x-www-form-urlencoded',

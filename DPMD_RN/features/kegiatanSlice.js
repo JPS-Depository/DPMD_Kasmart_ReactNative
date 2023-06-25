@@ -19,7 +19,7 @@ export const getKegiatan = createAsyncThunk("kegiatan/getKegiatan", async (param
     }
     const response = await axios({
       method: 'get',
-      url: 'http://10.0.2.2:8000/api/kegiatan',
+      url: 'https://dpmd-bengkalis.com/api/kegiatan',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
         'Accept': 'application/json',
@@ -27,6 +27,7 @@ export const getKegiatan = createAsyncThunk("kegiatan/getKegiatan", async (param
       },
       params: params
     })
+    console.log(response.data);
     return response.data
   } catch (error) {
   }

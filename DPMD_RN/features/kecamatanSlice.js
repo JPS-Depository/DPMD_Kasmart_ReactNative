@@ -6,7 +6,7 @@ export const getKecamatan = createAsyncThunk("kecamatan/getKecamatan", async () 
   const token = await SecureStore.getItemAsync('access_token');
   const response = await axios({
     method: 'get',
-    url: 'http://10.0.2.2:8000/api/kecamatan',
+    url: 'https://dpmd-bengkalis.com/api/kecamatan',
     headers: {
       'Authorization': `Bearer ${token}`
     }

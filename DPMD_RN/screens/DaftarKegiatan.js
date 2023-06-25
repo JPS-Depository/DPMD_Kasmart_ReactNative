@@ -53,7 +53,7 @@ export default function KegiatanScreen({ navigation }) {
   async function loadKegiatan() {
     setLoading(true);
     dispatch(getKegiatan({
-      kecamatantugas_id: kecamatantugas_id,
+      kecamatantugas_id: kecamatan.id,
       role_id: role
     }));
   }

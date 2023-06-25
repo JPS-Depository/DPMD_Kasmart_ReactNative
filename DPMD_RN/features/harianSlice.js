@@ -6,7 +6,7 @@ export const getHarian = createAsyncThunk("harian/getHarian", async (params) => 
   const token = await SecureStore.getItemAsync('access_token');
   const response = await axios({
     method: 'get',
-    url: 'http://10.0.2.2:8000/api/daftarharian',
+    url: 'https://dpmd-bengkalis.com/api/daftarharian',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
       'Accept': 'application/json',
